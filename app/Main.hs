@@ -12,8 +12,12 @@ repl = do
     putStr "$ "
     hFlush stdout
     input <- getLine
-
     if input == "exit" then return ()
     else do
-        putStrLn $ input ++ ": command not found"
-        repl
+        let cmd: args = words input
+        case cmd of
+            "echo" -> print $ unwords args
+            _ -> do
+                putStrLn $ input ++ ": command not found"
+                repl
+
