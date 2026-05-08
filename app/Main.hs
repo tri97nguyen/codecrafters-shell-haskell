@@ -16,7 +16,7 @@ repl = do
     else do
         let cmd: args = words input
         case cmd of
-            "echo" -> print $ unwords args
+            "echo" -> putStrLn $ unwords args
             _ -> do
                 putStrLn $ input ++ ": command not found"
                 repl
