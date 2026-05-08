@@ -19,5 +19,5 @@ repl = do
             "echo" -> putStrLn $ unwords args
             _ -> do
                 putStrLn $ input ++ ": command not found"
-                repl
+        repl
 
