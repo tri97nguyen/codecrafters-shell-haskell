@@ -12,6 +12,8 @@ repl = do
     putStr "$ "
     hFlush stdout
     input <- getLine
-    when (input == "exit") $ return ()
-    putStrLn $ input ++ ": command not found"
-    repl
+
+    if input == "exit" then return ()
+    else do
+        putStrLn $ input ++ ": command not found"
+        repl
