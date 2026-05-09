@@ -7,6 +7,15 @@ main :: IO ()
 main = do
     repl
 
+builtInCommands = ["echo", "exit"]
+
+typeCommand :: [String] -> String
+typeCommand (command:otherCommands)
+    | command `elem` builtInCommands = command <> " is a shell builtin"
+    | otherwise = command <> ": not found"
+    
+
+
 repl :: IO ()
 repl = do
     putStr "$ "
@@ -16,8 +25,8 @@ repl = do
     else do
         let cmd: args = words input
         case cmd of
+            "type" -> print $ typeCommand args
             "echo" -> putStrLn $ unwords args
-            _ -> do
-                putStrLn $ input ++ ": command not found"
+            _ -> putStrLn $ input ++ ": command not found"
         repl
 
