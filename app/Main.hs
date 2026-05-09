@@ -7,7 +7,7 @@ main :: IO ()
 main = do
     repl
 
-builtInCommands = ["echo", "exit"]
+builtInCommands = ["echo", "exit", "type"]
 
 typeCommand :: [String] -> String
 typeCommand (command:otherCommands)
