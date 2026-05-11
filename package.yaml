@@ -16,6 +16,7 @@ dependencies:
   - directory
   - filepath
   - mtl
+  - containers
 
 executables:
   codecrafters-shell-exe:
@@ -25,3 +26,5 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+      - -Werror
+    default-language: GHC2024
