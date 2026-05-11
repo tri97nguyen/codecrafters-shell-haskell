@@ -27,4 +27,4 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -Werror
-    language: GHC2024
+    language: GHC2021
