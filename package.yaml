@@ -27,4 +27,4 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -Werror
-    default-language: GHC2024
+    language: GHC2024
