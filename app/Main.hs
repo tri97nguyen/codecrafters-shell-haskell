@@ -1,11 +1,14 @@
 module Main (main) where
 
 import System.IO (hFlush, stdout)
-import Control.Monad (when)
+import Control.Monad (when, join, filterM, (>=>))
 import Control.Monad.State (State, get, put, runState, execState)
 import System.Environment (getEnv)
 import Data.Sequence (Seq((:<|), (:|>), Empty), (|>), singleton)
 import Data.Foldable (toList)
+import Data.Functor ((<&>))
+import System.Directory
+import System.FilePath (makeRelative)
 
 splitOn :: String -> Char -> [String]
 splitOn text delimiter =
@@ -28,14 +31,6 @@ splitOn text delimiter =
                 newLastItem = lastItem <> [char]
             put (front :|> newLastItem)
 
-mysplit :: Char -> String -> [String]
-mysplit delimiter text =
-    toList $ foldl accumulatorFn (singleton "") text
-    where
-        accumulatorFn :: Seq String -> Char -> Seq String
-        accumulatorFn (front :|> end) next
-            | next == delimiter = front |> end |> ""
-            | otherwise = front |> (end ++ [next])
         
 
 main :: IO ()
@@ -47,18 +42,32 @@ builtInCommands = ["echo", "exit", "type"]
 typeCommand :: [String] -> IO String
 typeCommand (command:otherCommands)
     | command `elem` builtInCommands = return $ command <> " is a shell builtin"
-    | otherwise = return $ command <> ": not found"
+    | otherwise = do 
 
+        absolutePath <- makeAbsolute command
+        let isExecutable = executable <$> getPermissions absolutePath
+        commandInPathAndExecutable <- (&&) <$> isExecutable <*> isCommandInPath command
 
+        if commandInPathAndExecutable then return $ command <> " is " <> absolutePath
+        else return $ command <> ": not found"
 
+    where
 
+        isCommandInPath :: String -> IO Bool
+        isCommandInPath command = do
+            path <- getEnv "PATH" <&> splitOn ',' 
+            fileAndDirInPath <- join <$> mapM listDirectory path
+            filesInPath <- filterM doesFileExist fileAndDirInPath
+            return $ any(== command) filesInPath
 
-checkCommandInPath :: IO String
-checkCommandInPath = do
-    path <- getEnv "PATH"
-
-    return ""
-
+        splitOn :: Char -> String -> [String]
+        splitOn delimiter text =
+            toList $ foldr accumulatorFn (singleton "") text
+            where
+                accumulatorFn :: Char -> Seq String -> Seq String
+                accumulatorFn next (front :|> end) 
+                    | next == delimiter = front |> end |> ""
+                    | otherwise = front |> (end ++ [next])
 
 
 repl :: IO ()
@@ -70,7 +79,7 @@ repl = do
     else do
         let cmd: args = words input
         case cmd of
-            -- "type" -> putStrLn $ typeCommand args
+            "type" -> putStrLn =<< typeCommand args
             "echo" -> putStrLn $ unwords args
             _ -> putStrLn $ input ++ ": command not found"
         repl

@@ -17,6 +17,7 @@ dependencies:
   - filepath
   - mtl
   - containers
+  - directory
 
 executables:
   codecrafters-shell-exe:
