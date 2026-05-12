@@ -59,15 +59,10 @@ typeCommand = mapM checkCommand
 
         isCommandInPath :: String -> IO (Maybe FilePath)
         isCommandInPath command = do
-            traceIO "in commandinpath"
-            debugPath <- getEnv "PATH"
-            traceIO $ "actual path variable is " <> show debugPath
             path <- getEnv "PATH" <&> splitOn ':'
-            traceIO $ "path variable is " <> show path
             fileAndDirInPath <- join <$> mapM listDirectory path
             traceIO $ "fileAndDirInPath variable is " <> show fileAndDirInPath
             filesInPath <- filterM doesFileExist fileAndDirInPath
-            traceIO $ "filesInPath variable is " <> show filesInPath
             return $ find (== command) filesInPath
 
         splitOn :: Char -> String -> [String]
@@ -89,8 +84,7 @@ repl = do
     else do
         let cmd: args = words input
         case cmd of
-            "type" -> 
-                traceM "hello world" >> typeCommand args >>= mapM_ putStrLn
+            "type" -> typeCommand args >>= mapM_ putStrLn
             "echo" -> putStrLn $ unwords args
             _ -> putStrLn $ input ++ ": command not found"
         repl
