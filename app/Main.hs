@@ -12,6 +12,7 @@ import System.FilePath (makeRelative)
 import Data.Maybe (isJust)
 import GHC.IO.Handle.Internals (debugIO)
 import Debug.Trace (trace, traceM, traceIO)
+import Data.List (unfoldr, findIndex)
 
 splitOn :: String -> Char -> [String]
 splitOn text delimiter =
@@ -89,3 +90,17 @@ repl = do
             _ -> putStrLn $ input ++ ": command not found"
         repl
 
+
+
+
+mysplit :: Char -> String -> [String]
+mysplit delimiter text = unfoldr step text
+    where
+        step :: String -> Maybe (String, String) 
+        step next =
+            let mbIndex = findIndex (== delimiter) next
+            in case mbIndex of
+                Just index -> 
+                    let (head, (',': tail)) = splitAt index next
+                    in Just $ (head, tail)
+                Nothing -> Nothing
