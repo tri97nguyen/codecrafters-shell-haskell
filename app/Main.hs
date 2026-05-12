@@ -5,10 +5,11 @@ import Control.Monad (when, join, filterM, (>=>))
 import Control.Monad.State (State, get, put, runState, execState)
 import System.Environment (getEnv)
 import Data.Sequence (Seq((:<|), (:|>), Empty), (|>), singleton)
-import Data.Foldable (toList)
+import Data.Foldable (toList, find)
 import Data.Functor ((<&>))
 import System.Directory
 import System.FilePath (makeRelative)
+import Data.Maybe (isJust)
 
 splitOn :: String -> Char -> [String]
 splitOn text delimiter =
@@ -31,7 +32,7 @@ splitOn text delimiter =
                 newLastItem = lastItem <> [char]
             put (front :|> newLastItem)
 
-        
+
 
 main :: IO ()
 main = do
@@ -39,33 +40,33 @@ main = do
 
 builtInCommands = ["echo", "exit", "type"]
 
-typeCommand :: [String] -> IO String
-typeCommand (command:otherCommands)
-    | command `elem` builtInCommands = return $ command <> " is a shell builtin"
-    | otherwise = do 
-
-        absolutePath <- makeAbsolute command
-        let isExecutable = executable <$> getPermissions absolutePath
-        commandInPathAndExecutable <- (&&) <$> isExecutable <*> isCommandInPath command
-
-        if commandInPathAndExecutable then return $ command <> " is " <> absolutePath
-        else return $ command <> ": not found"
-
+typeCommand :: [String] -> IO [String]
+typeCommand = mapM checkCommand
     where
+        checkCommand :: String -> IO String
+        checkCommand cmd
+            | cmd `elem` builtInCommands = return $ cmd <> " is a shell builtin"
+            | otherwise = do
+                mbPath <- isCommandInPath cmd
+                case mbPath of
+                    Just path -> do
+                        isExecutable <- executable <$> getPermissions path
+                        return $ cmd <> " is " <> path
+                    _ -> return $ cmd <> ": not found"
 
-        isCommandInPath :: String -> IO Bool
+        isCommandInPath :: String -> IO (Maybe FilePath)
         isCommandInPath command = do
-            path <- getEnv "PATH" <&> splitOn ',' 
+            path <- getEnv "PATH" <&> splitOn ','
             fileAndDirInPath <- join <$> mapM listDirectory path
             filesInPath <- filterM doesFileExist fileAndDirInPath
-            return $ any(== command) filesInPath
+            return $ find (== command) filesInPath
 
         splitOn :: Char -> String -> [String]
         splitOn delimiter text =
             toList $ foldr accumulatorFn (singleton "") text
             where
                 accumulatorFn :: Char -> Seq String -> Seq String
-                accumulatorFn next (front :|> end) 
+                accumulatorFn next (front :|> end)
                     | next == delimiter = front |> end |> ""
                     | otherwise = front |> (end ++ [next])
 
@@ -79,7 +80,7 @@ repl = do
     else do
         let cmd: args = words input
         case cmd of
-            "type" -> putStrLn =<< typeCommand args
+            "type" -> typeCommand args >>= mapM_ putStrLn
             "echo" -> putStrLn $ unwords args
             _ -> putStrLn $ input ++ ": command not found"
         repl
