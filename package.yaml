@@ -28,4 +28,5 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -Werror
+      - -Wall
     language: GHC2021

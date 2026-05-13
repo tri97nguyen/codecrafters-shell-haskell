@@ -12,28 +12,28 @@ import System.FilePath (makeRelative)
 import Data.Maybe (isJust)
 import GHC.IO.Handle.Internals (debugIO)
 import Debug.Trace (trace, traceM, traceIO)
-import Data.List (unfoldr, findIndex)
+import Data.List (unfoldr, elemIndex)
 
-splitOn :: String -> Char -> [String]
-splitOn text delimiter =
-    toList $ execState (splitString text) (singleton "")
+-- splitOn :: String -> Char -> [String]
+-- splitOn text delimiter =
+--     toList $ execState (splitString text) (singleton "")
 
-    where
-    splitString :: String -> State (Seq String) ()
-    splitString "" = return ()
-    splitString (char : tail) = do
-        parseChar char
-        splitString tail
+--     where
+--     splitString :: String -> State (Seq String) ()
+--     splitString "" = return ()
+--     splitString (char : tail) = do
+--         parseChar char
+--         splitString tail
 
 
-    parseChar :: Char -> State (Seq String) ()
-    parseChar char = do
-        currentState <- get
-        if char == delimiter then put $ currentState |> ""
-        else do
-            let (front :|> lastItem) = currentState
-                newLastItem = lastItem <> [char]
-            put (front :|> newLastItem)
+--     parseChar :: Char -> State (Seq String) ()
+--     parseChar char = do
+--         currentState <- get
+--         if char == delimiter then put $ currentState |> ""
+--         else do
+--             let (front :|> lastItem) = currentState
+--                 newLastItem = lastItem <> [char]
+--             put (front :|> newLastItem)
 
 
 
@@ -41,6 +41,7 @@ main :: IO ()
 main = do
     repl
 
+builtInCommands :: [String]
 builtInCommands = ["echo", "exit", "type"]
 
 typeCommand :: [String] -> IO [String]
@@ -55,25 +56,41 @@ typeCommand = mapM checkCommand
                 case mbPath of
                     Just path -> do
                         isExecutable <- executable <$> getPermissions path
-                        return $ cmd <> " is " <> path
+                        if isExecutable then 
+                            return $ cmd <> ": not found"
+                        else return $ cmd <> " is " <> path
                     _ -> return $ cmd <> ": not found"
 
         isCommandInPath :: String -> IO (Maybe FilePath)
         isCommandInPath command = do
-            path <- getEnv "PATH" <&> splitOn ':'
+            path <- getEnv "PATH" <&> split ':'
             fileAndDirInPath <- join <$> mapM listDirectory path
             traceIO $ "fileAndDirInPath variable is " <> show fileAndDirInPath
             filesInPath <- filterM doesFileExist fileAndDirInPath
             return $ find (== command) filesInPath
 
-        splitOn :: Char -> String -> [String]
-        splitOn delimiter text =
-            toList $ foldr accumulatorFn (singleton "") text
+        -- oldSplit :: Char -> String -> [String]
+        -- oldSplit delimiter text =
+        --     toList $ foldr accumulatorFn (singleton "") text
+        --     where
+        --         accumulatorFn :: Char -> Seq String -> Seq String
+        --         accumulatorFn next (front :|> end)
+        --             | next == delimiter = front |> end |> ""
+        --             | otherwise = front |> (next : end)
+
+        split :: Char -> String -> [String]
+        split delimiter = unfoldr step
             where
-                accumulatorFn :: Char -> Seq String -> Seq String
-                accumulatorFn next (front :|> end)
-                    | next == delimiter = front |> end |> ""
-                    | otherwise = front |> (next : end)
+                step :: String -> Maybe (String, String) 
+                step next =
+                    let mbIndex = elemIndex delimiter next
+                    in case mbIndex of
+                        Just index ->
+                            let (front, rest) = splitAt index next
+                                dropDelimiter = drop 1 rest
+                            in Just (front, dropDelimiter)
+                        Nothing -> Nothing
+
 
 
 repl :: IO ()
@@ -93,14 +110,3 @@ repl = do
 
 
 
-mysplit :: Char -> String -> [String]
-mysplit delimiter text = unfoldr step text
-    where
-        step :: String -> Maybe (String, String) 
-        step next =
-            let mbIndex = findIndex (== delimiter) next
-            in case mbIndex of
-                Just index -> 
-                    let (head, (',': tail)) = splitAt index next
-                    in Just $ (head, tail)
-                Nothing -> Nothing
