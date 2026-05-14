@@ -7,7 +7,7 @@ import System.Environment (getEnv)
 import Data.Foldable (find)
 import Data.Functor ((<&>))
 import System.Directory
-import Debug.Trace (traceIO, traceM)
+import Debug.Trace (traceM)
 import Data.List (unfoldr, elemIndex)
 import Control.Monad.Trans (lift)
 
@@ -118,12 +118,14 @@ repl = do
     input <- getLine
     if input == "exit" then return ()
     else do
-        let cmd: args = words input
-        case cmd of
-            "type" -> typeCommand args >>= mapM_ putStrLn
-            "echo" -> putStrLn $ unwords args
-            _ -> putStrLn $ input ++ ": command not found"
-        repl
+        case words input of
+            (cmd : args) -> do
+                case cmd of
+                    "type" -> typeCommand args >>= mapM_ putStrLn
+                    "echo" -> putStrLn $ unwords args
+                    _ -> putStrLn $ input ++ ": command not found"
+                repl
+            _ -> repl
 
 
 
