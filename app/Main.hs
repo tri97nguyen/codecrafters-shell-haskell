@@ -1,18 +1,15 @@
 module Main (main) where
 
 import System.IO (hFlush, stdout)
-import Control.Monad (when, join, filterM, (>=>))
-import Control.Monad.State (State, get, put, runState, execState)
+import Control.Monad (join, filterM, guard)
+import Control.Monad.Trans.Maybe (MaybeT, hoistMaybe, runMaybeT)
 import System.Environment (getEnv)
-import Data.Sequence (Seq((:<|), (:|>), Empty), (|>), singleton)
-import Data.Foldable (toList, find)
+import Data.Foldable (find)
 import Data.Functor ((<&>))
 import System.Directory
-import System.FilePath (makeRelative)
-import Data.Maybe (isJust)
-import GHC.IO.Handle.Internals (debugIO)
-import Debug.Trace (trace, traceM, traceIO)
+import Debug.Trace (traceIO, traceM)
 import Data.List (unfoldr, elemIndex)
+import Control.Monad.Trans (lift)
 
 -- splitOn :: String -> Char -> [String]
 -- splitOn text delimiter =
@@ -52,22 +49,43 @@ typeCommand = mapM checkCommand
             | cmd `elem` builtInCommands = do
                 return $ cmd <> " is a shell builtin"
             | otherwise = do
-                mbPath <- isCommandInPath cmd
-                case mbPath of
-                    Just path -> do
-                        isExecutable <- executable <$> getPermissions path
-                        if isExecutable then 
-                            return $ cmd <> ": not found"
-                        else return $ cmd <> " is " <> path
-                    _ -> return $ cmd <> ": not found"
+                path <- runMaybeT $ isCommandExecutableT cmd
+                case path of
+                    Just p -> return $ cmd <> " is " <> p
+                    Nothing -> return $ cmd <> ": not found"
 
-        isCommandInPath :: String -> IO (Maybe FilePath)
-        isCommandInPath command = do
-            path <- getEnv "PATH" <&> split ':'
-            fileAndDirInPath <- join <$> mapM listDirectory path
-            traceIO $ "fileAndDirInPath variable is " <> show fileAndDirInPath
-            filesInPath <- filterM doesFileExist fileAndDirInPath
-            return $ find (== command) filesInPath
+                -- mbPath <- isCommandInPath cmd
+                -- case mbPath of
+                --     Just path -> do
+                --         isExecutable <- executable <$> getPermissions path
+                --         if isExecutable then 
+                --             return $ cmd <> " is " <> path
+                --         else return $ cmd <> ": not found" 
+                --     _ -> return $ cmd <> ": not found"
+
+        isCommandExecutableT :: FilePath -> MaybeT IO String
+        isCommandExecutableT cmd = do
+            path <- isCommandInPathT cmd
+            isExecutable <- lift $ executable <$> getPermissions path
+            guard isExecutable
+            return path
+            
+
+        isCommandInPathT :: String -> MaybeT IO FilePath
+        isCommandInPathT command = do
+            path <- lift $ getEnv "PATH" <&> split ':'
+            fileAndDirInPath <- lift $ join <$> mapM listDirectory path
+            traceM $ "fileAndDirInPath variable is " <> show fileAndDirInPath
+            filesInPath <- lift $ filterM doesFileExist fileAndDirInPath
+            hoistMaybe $ find (== command) filesInPath
+
+        -- isCommandInPath :: String -> IO (Maybe FilePath)
+        -- isCommandInPath command = do
+        --     path <- getEnv "PATH" <&> split ':'
+        --     fileAndDirInPath <- join <$> mapM listDirectory path
+        --     traceIO $ "fileAndDirInPath variable is " <> show fileAndDirInPath
+        --     filesInPath <- filterM doesFileExist fileAndDirInPath
+        --     return $ find (== command) filesInPath
 
         -- oldSplit :: Char -> String -> [String]
         -- oldSplit delimiter text =
