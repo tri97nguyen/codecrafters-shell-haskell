@@ -4,11 +4,9 @@ import Control.Exception (IOException, catch)
 import Control.Monad (filterM, guard, join)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT, hoistMaybe, runMaybeT)
-import Data.Foldable (find)
 import Data.Functor ((<&>))
 import Data.List (elemIndex, unfoldr)
 import Data.Map.Strict qualified as Map
-import Debug.Trace (traceM)
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>))
