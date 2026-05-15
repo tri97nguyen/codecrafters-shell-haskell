@@ -72,7 +72,7 @@ typeCommand = mapM checkCommand
           contents <-
             listDirectory folderPath
               `catch` ( \(_ :: IOException) -> do
-                          putStrLn ("could not process path " ++ show folderPath)
+                        --   putStrLn ("could not process path " ++ show folderPath)
                           return []
                       )
           return $ map (folderPath </>) contents
