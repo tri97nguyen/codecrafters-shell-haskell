@@ -7,6 +7,7 @@ import Data.List (elemIndex, unfoldr)
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>))
+import Debug.Trace (traceM)
 
 
 builtInCommands :: [String]
@@ -56,7 +57,7 @@ typeCommand = mapM checkCommand
           isExecutable filePath = executable <$> getPermissions filePath
       executable <- filterM (isExecutable . snd) filesMatchingCommand
       case executable of
-        ((commandName, _) : _) -> return $ Just commandName
+        ((_, filePath) : _) -> return $ Just filePath
         _ -> return Nothing
       where
         listDirectorySafe :: FilePath -> IO [FilePath]
