@@ -7,6 +7,7 @@ import Data.List (elemIndex, unfoldr)
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>))
+import Debug.Trace (traceM)
 
 
 builtInCommands :: [String]
@@ -54,7 +55,9 @@ typeCommand = mapM checkCommand
           filesMatchingCommand = filter (\(fileName, _) -> fileName == command) mapping
           isExecutable :: FilePath -> IO Bool
           isExecutable filePath = executable <$> getPermissions filePath
+      traceM $ "filesMatchingCommand " ++ show filesMatchingCommand
       executable <- filterM (isExecutable . snd) filesMatchingCommand
+      traceM $ "executable is " ++ show executable
       case executable of
         ((_, filePath) : _) -> return $ Just filePath
         _ -> return Nothing
