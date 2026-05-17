@@ -55,6 +55,8 @@ typeCommand = mapM checkCommand
           filesMatchingCommand = filter (\(fileName, _) -> fileName == command) mapping
           isExecutable :: FilePath -> IO Bool
           isExecutable filePath = executable <$> getPermissions filePath
+      traceM $ "filesInPath " ++ show filesInPath
+      traceM $ "mapping " ++ show mapping
       traceM $ "filesMatchingCommand " ++ show filesMatchingCommand
       executable <- filterM (isExecutable . snd) filesMatchingCommand
       traceM $ "executable is " ++ show executable
