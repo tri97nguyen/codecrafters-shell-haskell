@@ -1,2 +1,8 @@
 cradle:
   stack:
+    - path: "./test"
+      component: "codecrafters-shell:test:codecrafters-shell-test"
+    - path: "./app"
+      component: "codecrafters-shell:exe:codecrafters-shell-exe"
+    - path: "./src"
+      component: "codecrafters-shell:exe:codecrafters-shell-exe"
