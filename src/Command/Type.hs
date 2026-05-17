@@ -7,7 +7,6 @@ import Data.List (elemIndex, unfoldr)
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>))
-import Debug.Trace (traceM)
 
 
 builtInCommands :: [String]
