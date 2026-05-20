@@ -25,7 +25,7 @@ repl = do
             _ -> do
               mFilePath <- isExternalCommand cmd
               case mFilePath of
-                Just filePath -> do readProcess cmd args "" >>= putStrLn
+                Just _ -> do readProcess cmd args "" >>= putStrLn
                 Nothing -> putStrLn $ input ++ ": command not found"
-          repl
-        _ -> repl
+        _ -> return ()
+      repl
