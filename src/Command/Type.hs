@@ -3,11 +3,10 @@ module Command.Type where
 import Control.Exception (IOException, catch)
 import Control.Monad (filterM, join)
 import Data.Functor ((<&>))
-import Data.List (elemIndex, unfoldr)
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>), splitSearchPath)
--- import Debug.Trace (traceM)
+import Debug.Trace (traceM)
 
 
 builtInCommands :: [String]
@@ -41,47 +40,34 @@ typeCommand = mapM checkCommand
       | cmd `elem` builtInCommands = do
           return $ cmd <> " is a shell builtin"
       | otherwise = do
-          path <- isCommandInPathV2 cmd
+          path <- isExternalCommand cmd
           case path of
             Just p -> return $ cmd <> " is " <> p
             Nothing -> return $ cmd <> ": not found"
 
-    isCommandInPathV2 :: String -> IO (Maybe FilePath)
-    isCommandInPathV2 command = do
-      folderPath <- getEnv "PATH" <&> splitSearchPath
-      fileAndDirInPath <- join <$> mapM listDirectorySafe folderPath
-      filesInPath <- filterM doesFileExist fileAndDirInPath -- filter out folders to get only files
-      let mapping = map (\filePath -> (takeFileName filePath, filePath)) filesInPath
-          filesMatchingCommand = filter (\(fileName, _) -> fileName == command) mapping
-          isExecutable :: FilePath -> IO Bool
-          isExecutable filePath = executable <$> getPermissions filePath
-      -- traceM $ "mapping " ++ show mapping
-      -- traceM $ "filesMatchingCommand " ++ show filesMatchingCommand
-      executable <- filterM (isExecutable . snd) filesMatchingCommand
-      -- traceM $ "executable is " ++ show executable
-      case executable of
-        ((_, filePath) : _) -> return $ Just filePath
-        _ -> return Nothing
-      where
-        listDirectorySafe :: FilePath -> IO [FilePath]
-        listDirectorySafe folderPath = do
-          contents <-
-            listDirectory folderPath
-              `catch` ( \(_ :: IOException) -> do
-                        --   putStrLn ("could not process path " ++ show folderPath)
-                          return []
-                      )
-          return $ map (folderPath </>) contents
-
-    -- split :: Char -> String -> [String]
-    -- split delimiter = unfoldr step
-    --   where
-    --     step :: String -> Maybe (String, String)
-    --     step next =
-    --       let mbIndex = elemIndex delimiter next
-    --        in case mbIndex of
-    --             Just index ->
-    --               let (front, rest) = splitAt index next
-    --                   dropDelimiter = drop 1 rest
-    --                in Just (front, dropDelimiter)
-    --             Nothing -> Nothing
+isExternalCommand :: String -> IO (Maybe FilePath)
+isExternalCommand command = do
+  folderPath <- getEnv "PATH" <&> splitSearchPath
+  fileAndDirInPath <- join <$> mapM listDirectorySafe folderPath
+  filesInPath <- filterM doesFileExist fileAndDirInPath -- filter out folders to get only files
+  let mapping = map (\filePath -> (takeFileName filePath, filePath)) filesInPath
+      filesMatchingCommand = filter (\(fileName, _) -> fileName == command) mapping
+      isExecutable :: FilePath -> IO Bool
+      isExecutable filePath = executable <$> getPermissions filePath
+  -- traceM $ "mapping " ++ show mapping
+  -- traceM $ "filesMatchingCommand " ++ show filesMatchingCommand
+  executable <- filterM (isExecutable . snd) filesMatchingCommand
+  -- traceM $ "executable is " ++ show executable
+  case executable of
+    ((_, filePath) : _) -> return $ Just filePath
+    _ -> return Nothing
+  where
+    listDirectorySafe :: FilePath -> IO [FilePath]
+    listDirectorySafe folderPath = do
+      contents <-
+        listDirectory folderPath
+          `catch` ( \(_ :: IOException) -> do
+                    --   putStrLn ("could not process path " ++ show folderPath)
+                      return []
+                  )
+      return $ map (folderPath </>) contents
