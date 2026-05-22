@@ -3,9 +3,8 @@ module Command.Common where
 import Data.IORef (IORef)
 import Control.Monad.Trans.Reader (ReaderT)
 
-newtype AppState = AppState {
-  currentWorkingDirectory :: IORef FilePath
-}
+data AppState = AppState 
+
 
 newtype Env = Env {
   appState :: AppState

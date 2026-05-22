@@ -5,15 +5,13 @@ import Command.Type (typeCommand, isExternalCommand)
 import System.Process (readProcess)
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
 import Control.Monad.Reader (ReaderT (runReaderT), runReaderT, lift, ask)
-import Data.IORef (newIORef, readIORef)
-import Command.Common (currentWorkingDirectory, Env (..), AppState (..), App)
+import Command.Common (Env (..), AppState (..), App)
 import Control.Exception (handle, IOException)
 
 
 main :: IO ()
 main = do
-  curDir <- getCurrentDirectory >>= newIORef
-  let env = Env {appState = AppState {currentWorkingDirectory = curDir}}
+  let env = Env {appState = AppState }
   runReaderT repl env
   
 
@@ -33,7 +31,7 @@ repl = do
             case cmd of
               "type" -> typeCommand args >>= mapM_ putStrLn
               "echo" -> putStrLn $ unwords args
-              "pwd" -> readIORef (currentWorkingDirectory . appState $ env) >>= putStrLn
+              "pwd" -> getCurrentDirectory >>= putStrLn
               "cd" -> do
                 case args of
                     (path : _) -> do
