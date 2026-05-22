@@ -3,19 +3,12 @@ module Main (main) where
 import System.IO (hFlush, stdout)
 import Command.Type (typeCommand, isExternalCommand)
 import System.Process (readProcess)
-import System.Directory (getCurrentDirectory, doesDirectoryExist)
+import System.Directory (getCurrentDirectory)
 import Control.Monad.Reader (ReaderT (runReaderT), runReaderT, lift, ask)
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef, writeIORef)
+import Data.IORef (newIORef, readIORef)
+import Command.Common (currentWorkingDirectory, Env (..), AppState (..), App)
+import Command.Cd (cdCommand)
 
-data AppState = AppState {
-  currentWorkingDirectory :: IORef FilePath
-}
-
-data Env = Env {
-  appState :: AppState
-}
-
-type App a = ReaderT Env IO a
 
 main :: IO ()
 main = do
@@ -41,17 +34,7 @@ repl = do
               "type" -> typeCommand args >>= mapM_ putStrLn
               "echo" -> putStrLn $ unwords args
               "pwd" -> readIORef (currentWorkingDirectory . appState $ env) >>= putStrLn
-              "cd" -> do
-                case args of
-                  (path : _) -> do
-                    let dirRef = currentWorkingDirectory . appState $ env
-                    dirExist <- doesDirectoryExist path
-                    if dirExist then
-                      writeIORef dirRef path
-                    else
-                      putStrLn $ "cd: " ++ path ++ ": No such file or directory"
-                  _ -> return ()
-
+              "cd" -> runReaderT (cdCommand args) env
               _ -> do
                 mFilePath <- isExternalCommand cmd
                 case mFilePath of
