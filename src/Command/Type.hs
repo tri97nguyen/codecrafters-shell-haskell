@@ -6,7 +6,6 @@ import Data.Functor ((<&>))
 import System.Directory
 import System.Environment (getEnv)
 import System.FilePath (takeFileName, (</>), splitSearchPath)
-import Debug.Trace (traceM)
 
 
 builtInCommands :: [String]
@@ -54,10 +53,7 @@ isExternalCommand command = do
       filesMatchingCommand = filter (\(fileName, _) -> fileName == command) mapping
       isExecutable :: FilePath -> IO Bool
       isExecutable filePath = executable <$> getPermissions filePath
-  -- traceM $ "mapping " ++ show mapping
-  -- traceM $ "filesMatchingCommand " ++ show filesMatchingCommand
   executable <- filterM (isExecutable . snd) filesMatchingCommand
-  -- traceM $ "executable is " ++ show executable
   case executable of
     ((_, filePath) : _) -> return $ Just filePath
     _ -> return Nothing

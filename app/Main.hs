@@ -2,7 +2,8 @@ module Main (main) where
 
 import System.IO (hFlush, stdout)
 import Command.Type (typeCommand, isExternalCommand)
-import System.Process (CreateProcess, readProcess, proc)
+import System.Process (readProcess)
+import System.Directory (getCurrentDirectory)
 
 main :: IO ()
 main = do
@@ -22,6 +23,7 @@ repl = do
           case cmd of
             "type" -> typeCommand args >>= mapM_ putStrLn
             "echo" -> putStrLn $ unwords args
+            "pwd" -> getCurrentDirectory >>= putStrLn
             _ -> do
               mFilePath <- isExternalCommand cmd
               case mFilePath of
