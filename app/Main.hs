@@ -3,11 +3,11 @@ module Main (main) where
 import System.IO (hFlush, stdout)
 import Command.Type (typeCommand, isExternalCommand)
 import System.Process (readProcess)
-import System.Directory (getCurrentDirectory)
+import System.Directory (getCurrentDirectory, setCurrentDirectory)
 import Control.Monad.Reader (ReaderT (runReaderT), runReaderT, lift, ask)
 import Data.IORef (newIORef, readIORef)
 import Command.Common (currentWorkingDirectory, Env (..), AppState (..), App)
-import Command.Cd (cdCommand)
+import Control.Exception (handle, IOException)
 
 
 main :: IO ()
@@ -34,7 +34,14 @@ repl = do
               "type" -> typeCommand args >>= mapM_ putStrLn
               "echo" -> putStrLn $ unwords args
               "pwd" -> readIORef (currentWorkingDirectory . appState $ env) >>= putStrLn
-              "cd" -> runReaderT (cdCommand args) env
+              "cd" -> do
+                case args of
+                    (path : _) -> do
+                      handle 
+                        (\(_:: IOException) -> putStrLn $ "cd: " ++ path ++ ": No such file or directory")
+                        (setCurrentDirectory path)
+                    _ -> return ()
+
               _ -> do
                 mFilePath <- isExternalCommand cmd
                 case mFilePath of
