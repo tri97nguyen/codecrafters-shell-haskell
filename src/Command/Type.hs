@@ -9,7 +9,7 @@ import System.FilePath (takeFileName, (</>), splitSearchPath)
 
 
 builtInCommands :: [String]
-builtInCommands = ["echo", "exit", "type"]
+builtInCommands = ["echo", "exit", "type", "pwd"]
 
 -- |
 -- Implements the shell's @type@ builtin command.
