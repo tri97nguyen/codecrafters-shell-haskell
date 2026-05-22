@@ -7,6 +7,7 @@ import System.Directory (getCurrentDirectory, setCurrentDirectory)
 import Control.Monad.Reader (ReaderT (runReaderT), runReaderT, lift, ask)
 import Command.Common (Env (..), AppState (..), App)
 import Control.Exception (handle, IOException)
+import System.Environment (getEnv)
 
 
 main :: IO ()
@@ -34,6 +35,7 @@ repl = do
               "pwd" -> getCurrentDirectory >>= putStrLn
               "cd" -> do
                 case args of
+                    ("~": _) -> getEnv "HOME" >>= setCurrentDirectory
                     (path : _) -> do
                       handle 
                         (\(_:: IOException) -> putStrLn $ "cd: " ++ path ++ ": No such file or directory")
