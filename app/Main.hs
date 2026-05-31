@@ -20,7 +20,7 @@ import Text.Megaparsec
       MonadParsec(notFollowedBy, lookAhead),
       try,
       manyTill,
-      (<|>), eof, optional )
+      (<|>), eof, optional, anySingle )
 import Data.Void (Void)
 import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -80,9 +80,9 @@ spaceConsumer = L.space space1 empty empty
 
 
 wordInQuotes :: Parser String
-wordInQuotes = do
+wordInQuotes = dbg "wordInQuotes" $ do
   void $ char '\''
-  text <- (alphaNumChar <|> spaceChar <|> alphaNumSpaceCharSkip2SingleQuotes) `manyTill` (try . lookAhead $ endQuote)
+  text <- (anySingle <|> anySingleSkip2SingleQuotes) `manyTill` (try . lookAhead $ endQuote)
   void $ char '\''
   return text
   where
@@ -91,10 +91,10 @@ wordInQuotes = do
       void $ char '\''
       notFollowedBy $ char '\''
 
-    alphaNumSpaceCharSkip2SingleQuotes :: Parser Char
-    alphaNumSpaceCharSkip2SingleQuotes = do
+    anySingleSkip2SingleQuotes :: Parser Char
+    anySingleSkip2SingleQuotes = do
       void $ optional (try $ string "''")
-      alphaNumChar <|> spaceChar
+      anySingle
 
 wordNotInQuote :: Parser String
 wordNotInQuote = do
