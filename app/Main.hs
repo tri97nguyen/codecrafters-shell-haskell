@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
 import System.IO (hFlush, stdout)
@@ -14,12 +15,12 @@ main :: IO ()
 main = do
   let env = Env {appState = AppState }
   runReaderT repl env
-  
+
 
 
 repl :: App ()
 repl = do
-  env <- ask -- is this clean? Earlier repl is of type IO (), but after introducing readerT, I have converted it to App (), and so I have to do the lifting
+  env <- ask
   lift $ do
     putStr "$ "
     hFlush stdout
