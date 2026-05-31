@@ -29,8 +29,6 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -Wall
-    ghci-options:
-      - -XOverloadedStrings
     language: GHC2021
 
 tests:
