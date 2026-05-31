@@ -80,7 +80,7 @@ spaceConsumer = L.space space1 empty empty
 
 
 wordInQuotes :: Parser String
-wordInQuotes = dbg "wordInQuotes" $ do
+wordInQuotes = do
   void $ char '\''
   text <- (anySingle <|> anySingleSkip2SingleQuotes) `manyTill` (try . lookAhead $ endQuote)
   void $ char '\''
