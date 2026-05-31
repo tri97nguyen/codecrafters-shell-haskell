@@ -20,13 +20,14 @@ import Text.Megaparsec
       MonadParsec(notFollowedBy, lookAhead),
       try,
       manyTill,
-      (<|>) )
+      (<|>), eof, optional )
 import Data.Void (Void)
-import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar)
+import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Monad.Combinators ()
 import System.Exit (exitSuccess)
 import Control.Monad (void)
+import Text.Megaparsec.Debug (MonadParsecDbg(dbg))
 
 
 
@@ -56,7 +57,7 @@ repl = do
             case args of
                 ("~": _) -> getEnv "HOME" >>= setCurrentDirectory
                 (path : _) -> do
-                  handle 
+                  handle
                     (\(_:: IOException) -> putStrLn $ "cd: " ++ path ++ ": No such file or directory")
                     (setCurrentDirectory path)
                 _ -> return ()
@@ -78,10 +79,10 @@ spaceConsumer = L.space space1 empty empty
 
 
 
-wordInSingleQuotes :: Parser String
-wordInSingleQuotes = do
+wordInQuotes :: Parser String
+wordInQuotes = do
   void $ char '\''
-  text <- (alphaNumChar <|> spaceChar <|> skip2SingleQuotes) `manyTill` (try . lookAhead $ endQuote)
+  text <- (alphaNumChar <|> spaceChar <|> alphaNumSpaceCharSkip2SingleQuotes) `manyTill` (try . lookAhead $ endQuote)
   void $ char '\''
   return text
   where
@@ -90,16 +91,23 @@ wordInSingleQuotes = do
       void $ char '\''
       notFollowedBy $ char '\''
 
-    skip2SingleQuotes :: Parser Char
-    skip2SingleQuotes = try $ do
-      void $ char '\''
-      void $ char '\''
+    alphaNumSpaceCharSkip2SingleQuotes :: Parser Char
+    alphaNumSpaceCharSkip2SingleQuotes = do
+      void $ optional (try $ string "''")
       alphaNumChar <|> spaceChar
 
-
+wordNotInQuote :: Parser String
+wordNotInQuote = do
+  notFollowedBy $ char '\''
+  some alphaNumCharSkip2SingleQuotes
+  where
+    alphaNumCharSkip2SingleQuotes :: Parser Char
+    alphaNumCharSkip2SingleQuotes = do
+      void $ optional (try $ string "''")
+      alphaNumChar
 
 singleWord :: Parser String
-singleWord = L.lexeme spaceConsumer $ try wordInSingleQuotes <|> try (some alphaNumChar)
+singleWord = L.lexeme spaceConsumer $ try wordInQuotes <|> try wordNotInQuote
 
 cmdLineArgParser :: Parser (Command, [Argument])
 cmdLineArgParser = do
