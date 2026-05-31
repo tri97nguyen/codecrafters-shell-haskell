@@ -20,14 +20,13 @@ import Text.Megaparsec
       MonadParsec(notFollowedBy, lookAhead),
       try,
       manyTill,
-      (<|>), eof, optional, anySingle )
+      (<|>), eof, optional, anySingle, satisfy )
 import Data.Void (Void)
 import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Monad.Combinators ()
 import System.Exit (exitSuccess)
 import Control.Monad (void)
-import Text.Megaparsec.Debug (MonadParsecDbg(dbg))
 
 
 
@@ -99,12 +98,12 @@ wordInQuotes = do
 wordNotInQuote :: Parser String
 wordNotInQuote = do
   notFollowedBy $ char '\''
-  some alphaNumCharSkip2SingleQuotes
+  some allCharNotSpaceSkip2SingleQuotes
   where
-    alphaNumCharSkip2SingleQuotes :: Parser Char
-    alphaNumCharSkip2SingleQuotes = do
+    allCharNotSpaceSkip2SingleQuotes :: Parser Char
+    allCharNotSpaceSkip2SingleQuotes = do
       void $ optional (try $ string "''")
-      alphaNumChar
+      satisfy (/= ' ')
 
 singleWord :: Parser String
 singleWord = L.lexeme spaceConsumer $ try wordInQuotes <|> try wordNotInQuote
