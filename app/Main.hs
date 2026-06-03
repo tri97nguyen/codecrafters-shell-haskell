@@ -20,7 +20,7 @@ import Text.Megaparsec
       MonadParsec(notFollowedBy, lookAhead),
       try,
       manyTill,
-      (<|>), eof, optional, anySingle, satisfy )
+      (<|>), eof, optional, anySingle, satisfy, anySingleBut )
 import Data.Void (Void)
 import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -76,37 +76,42 @@ type Parser = Parsec Void String
 spaceConsumer :: Parser ()
 spaceConsumer = L.space space1 empty empty
 
+newtype QuoteChar = QuoteChar Char
+singleQuote = QuoteChar '\''
+doubleQuote = QuoteChar '\"'
 
-
-wordInQuotes :: Parser String
-wordInQuotes = do
-  void $ char '\''
-  text <- anySingleSkip2SingleQuotes `manyTill` (try . lookAhead $ endQuote)
-  void $ char '\''
+wordInQuotes :: QuoteChar -> Parser String
+wordInQuotes (QuoteChar quote) = do
+  void $ char quote
+  text <- many (string [quote, quote] >> anySingle <|> anySingle) -- `manyTill` (try . lookAhead $ endQuote)
+  void $ char quote
   return text
   where
-    endQuote :: Parser ()
-    endQuote = do
-      void $ char '\''
-      notFollowedBy $ char '\''
+    -- endQuote :: Parser ()
+    -- endQuote = do
+    --   void $ char quote
+    --   notFollowedBy $ char quote
 
-    anySingleSkip2SingleQuotes :: Parser Char
-    anySingleSkip2SingleQuotes = do
-      void $ optional (try $ string "''")
-      anySingle
+    -- anySingleSkip2SingleQuotes :: Parser Char
+    -- anySingleSkip2SingleQuotes = do
+    --   void $ optional (try $ string [quote, quote])
+    --   anySingle
 
-wordNotInQuote :: Parser String
-wordNotInQuote = do
-  notFollowedBy $ char '\''
-  some allCharNotSpaceSkip2SingleQuotes
-  where
-    allCharNotSpaceSkip2SingleQuotes :: Parser Char
-    allCharNotSpaceSkip2SingleQuotes = do
-      void $ optional (try $ string "''")
-      satisfy (/= ' ')
+wordNotInQuote :: QuoteChar -> Parser String
+wordNotInQuote (QuoteChar quote) = do
+  notFollowedBy $ char quote
+  some (string [quote, quote] >> anySingleBut ' ' <|> anySingleBut ' ')
+
+  -- some allCharNotSpaceSkip2Quotes
+  
+  -- where
+  --   allCharNotSpaceSkip2Quotes :: Parser Char
+  --   allCharNotSpaceSkip2Quotes = do
+  --     void $ optional (try $ string [quote, quote])
+  --     satisfy (/= ' ')
 
 singleWord :: Parser String
-singleWord = L.lexeme spaceConsumer $ try wordInQuotes <|> try wordNotInQuote
+singleWord = L.lexeme spaceConsumer $ try (wordInQuotes singleQuote) <|> try (wordNotInQuote singleQuote)
 
 cmdLineArgParser :: Parser (Command, [Argument])
 cmdLineArgParser = do
@@ -114,4 +119,3 @@ cmdLineArgParser = do
   command <- Command <$> singleWord
   arguments <- many singleWord
   return (command, arguments)
-
