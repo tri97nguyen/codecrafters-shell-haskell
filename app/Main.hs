@@ -20,13 +20,15 @@ import Text.Megaparsec
       MonadParsec(notFollowedBy, lookAhead),
       try,
       manyTill,
-      (<|>), eof, optional, anySingle, satisfy, anySingleBut )
+      (<|>), eof, optional, anySingle, satisfy, anySingleBut, someTill )
 import Data.Void (Void)
 import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Monad.Combinators ()
 import System.Exit (exitSuccess)
 import Control.Monad (void)
+import Debug.Trace (traceM)
+import Text.Megaparsec.Debug (dbg)
 
 
 
@@ -44,9 +46,11 @@ repl = do
     putStr "$ "
     hFlush stdout
     input <- getLine
+    traceM $ "input is " <> input
     let parsedCmdInput = parse cmdLineArgParser "" input
     case parsedCmdInput of
       Right (Command cmd, args) -> do
+        traceM $ "cmd is " <> cmd
         case cmd of
           "exit" -> exitSuccess
           "type" -> typeCommand args >>= mapM_ putStrLn
@@ -80,17 +84,19 @@ newtype QuoteChar = QuoteChar Char
 singleQuote = QuoteChar '\''
 doubleQuote = QuoteChar '\"'
 
+
 wordInQuotes :: QuoteChar -> Parser String
-wordInQuotes (QuoteChar quote) = do
+wordInQuotes (QuoteChar quote) = dbg "wordInQuote" $ do
   void $ char quote
-  text <- many (string [quote, quote] >> anySingle <|> anySingle) -- `manyTill` (try . lookAhead $ endQuote)
+  text <- ((string "''" >> anySingle) <|> anySingle) `manyTill` lookAhead endQuote -- `manyTill` (try . lookAhead $ endQuote)
   void $ char quote
   return text
   where
-    -- endQuote :: Parser ()
-    -- endQuote = do
-    --   void $ char quote
-    --   notFollowedBy $ char quote
+    -- prevent 2 quotes in the middle of a word, which is not the signal for ending the word
+    endQuote :: Parser ()
+    endQuote = do
+      void $ char quote
+      notFollowedBy $ char quote
 
     -- anySingleSkip2SingleQuotes :: Parser Char
     -- anySingleSkip2SingleQuotes = do
@@ -98,12 +104,12 @@ wordInQuotes (QuoteChar quote) = do
     --   anySingle
 
 wordNotInQuote :: QuoteChar -> Parser String
-wordNotInQuote (QuoteChar quote) = do
+wordNotInQuote (QuoteChar quote) = dbg "wordNotInQuote" $ do
   notFollowedBy $ char quote
-  some (string [quote, quote] >> anySingleBut ' ' <|> anySingleBut ' ')
+  ((string [quote, quote] >> anySingle) <|> anySingle) `someTill` lookAhead (eof <|> void spaceChar)
 
   -- some allCharNotSpaceSkip2Quotes
-  
+
   -- where
   --   allCharNotSpaceSkip2Quotes :: Parser Char
   --   allCharNotSpaceSkip2Quotes = do
@@ -119,3 +125,7 @@ cmdLineArgParser = do
   command <- Command <$> singleWord
   arguments <- many singleWord
   return (command, arguments)
+
+
+testParser :: Parser String
+testParser = dbg "testParser" $ ((string "''" >> anySingle) <|> anySingle) `manyTill` (lookAhead $ dbg "lookahead" ((char '\'' >> notFollowedBy (char '\''))))
