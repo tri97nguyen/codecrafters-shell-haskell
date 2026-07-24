@@ -1,35 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
 import System.IO (hFlush, stdout)
 import Command.Type (typeCommand, isExternalCommand)
 import System.Process (readProcess)
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
-import Control.Monad.Reader (ReaderT (runReaderT), runReaderT, lift, ask)
+import Control.Monad.Reader (runReaderT, lift, ask)
 import Command.Common (Env (..), AppState (..), App)
+import Command.Parser (Command (..), cmdLineArgParser)
 import Control.Exception (handle, IOException)
 import System.Environment (getEnv)
 import Text.Megaparsec
-    ( Parsec,
-      empty,
-      many,
-      some,
-      parse,
+    ( parse,
       errorBundlePretty,
-      parseTest,
-      MonadParsec(notFollowedBy, lookAhead),
-      try,
-      manyTill,
-      (<|>), eof, optional, anySingle, satisfy, anySingleBut, someTill )
-import Data.Void (Void)
-import Text.Megaparsec.Char (space, space1, alphaNumChar, char, spaceChar, string)
-import qualified Text.Megaparsec.Char.Lexer as L
-import Control.Monad.Combinators ()
+    )
 import System.Exit (exitSuccess)
-import Control.Monad (void)
 import Debug.Trace (traceM)
-import Text.Megaparsec.Debug (dbg)
-
 
 
 main :: IO ()
@@ -71,61 +56,3 @@ repl = do
               Nothing -> putStrLn $ input ++ ": command not found"
       Left errorBundle -> putStrLn $ errorBundlePretty errorBundle
     runReaderT repl env
-
-
-newtype Command = Command String deriving (Show)
-type Argument = String
-
-type Parser = Parsec Void String
-spaceConsumer :: Parser ()
-spaceConsumer = L.space space1 empty empty
-
-newtype QuoteChar = QuoteChar Char
-singleQuote = QuoteChar '\''
-doubleQuote = QuoteChar '\"'
-
-
-wordInQuotes :: QuoteChar -> Parser String
-wordInQuotes (QuoteChar quote) = dbg "wordInQuote" $ do
-  void $ char quote
-  text <- ((string "''" >> anySingle) <|> anySingle) `manyTill` lookAhead endQuote -- `manyTill` (try . lookAhead $ endQuote)
-  void $ char quote
-  return text
-  where
-    -- prevent 2 quotes in the middle of a word, which is not the signal for ending the word
-    endQuote :: Parser ()
-    endQuote = do
-      void $ char quote
-      notFollowedBy $ char quote
-
-    -- anySingleSkip2SingleQuotes :: Parser Char
-    -- anySingleSkip2SingleQuotes = do
-    --   void $ optional (try $ string [quote, quote])
-    --   anySingle
-
-wordNotInQuote :: QuoteChar -> Parser String
-wordNotInQuote (QuoteChar quote) = dbg "wordNotInQuote" $ do
-  notFollowedBy $ char quote
-  ((string [quote, quote] >> anySingle) <|> anySingle) `someTill` lookAhead (eof <|> void spaceChar)
-
-  -- some allCharNotSpaceSkip2Quotes
-
-  -- where
-  --   allCharNotSpaceSkip2Quotes :: Parser Char
-  --   allCharNotSpaceSkip2Quotes = do
-  --     void $ optional (try $ string [quote, quote])
-  --     satisfy (/= ' ')
-
-singleWord :: Parser String
-singleWord = L.lexeme spaceConsumer $ try (wordInQuotes singleQuote) <|> try (wordNotInQuote singleQuote)
-
-cmdLineArgParser :: Parser (Command, [Argument])
-cmdLineArgParser = do
-  space
-  command <- Command <$> singleWord
-  arguments <- many singleWord
-  return (command, arguments)
-
-
-testParser :: Parser String
-testParser = dbg "testParser" $ ((string "''" >> anySingle) <|> anySingle) `manyTill` (lookAhead $ dbg "lookahead" ((char '\'' >> notFollowedBy (char '\''))))

@@ -4,10 +4,12 @@
 import Test.Hspec
 import Test.QuickCheck
 import Control.Exception (evaluate)
+import Command.ParserSpec
 import Command.TypeSpec
 
 main :: IO ()
 main = hspec $ do
+    Command.ParserSpec.spec
     Command.TypeSpec.spec
     describe "Prelude.head" $ do
         it "returns the first element of the list" $ do
